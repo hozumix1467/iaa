@@ -1,24 +1,52 @@
 {
   "expo": {
-    "name": "bolt-expo-nativewind",
-    "slug": "bolt-expo-nativewind",
+    "name": "Real Smart",
+    "slug": "real-smart",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "realsmart",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "description": "スマートフォンの使用時間を管理し、健康的なデジタルライフをサポートするアプリです。",
+    "privacy": "public",
+    "githubUrl": "https://github.com/hozumix1467/iaa",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "hozumix3333real-smart",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSUserTrackingUsageDescription": "このアプリは使用時間の分析のためにデータを追跡します。",
+        "NSCameraUsageDescription": "カメラ機能を使用する場合に必要です。",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.yourcompany.realsmart",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": ["expo-router", "expo-font", "expo-web-browser"],
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser"
+    ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0e482f18-1fc0-485a-993b-38946cefacf4"
+      }
     }
   }
 }

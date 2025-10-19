@@ -8,6 +8,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { Clock, Plus, Calendar, Smartphone, RefreshCw, TrendingUp, Home, History, User } from 'lucide-react-native';
 // SVGライブラリは使用しない
@@ -34,15 +35,37 @@ export default function HomeScreen() {
   const [userName, setUserName] = useState('ユーザー');
   const [hourlyWage, setHourlyWage] = useState(1000); // 時給1000円
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  
+  // 時給編集の状態
+  const [isEditingWage, setIsEditingWage] = useState(false);
+  const [tempHourlyWage, setTempHourlyWage] = useState(hourlyWage);
+  
+  // ポップアップの状態
+  const [selectedDayData, setSelectedDayData] = useState(null);
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+  
+  // カレンダーの状態
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [calendarData, setCalendarData] = useState({});
 
   useEffect(() => {
     fetchUsageData();
     checkScreenTimeAuthorization();
+  }, []);
+
+  useEffect(() => {
     // ScreenTimeが認証済みの場合は自動でデータを取得
     if (isScreenTimeAuthorized) {
       fetchScreenTimeData();
+    } else {
+      // 認証されていない場合は自動で認証を要求
+      requestScreenTimeAuthorization();
     }
   }, [isScreenTimeAuthorized]);
+  
+  useEffect(() => {
+    prepareCalendarData();
+  }, [usageData]);
 
   async function fetchUsageData() {
     try {
@@ -193,15 +216,41 @@ export default function HomeScreen() {
     return weekData;
   }
 
-  // グラフ用のデータを準備（SVG用）
+  // グラフ用のデータを準備（アプリ別積み上げ）
   function getChartData() {
     const weeklyData = prepareWeeklyData();
     
-    return weeklyData.map((item, index) => ({
-      x: index,
-      y: Math.min(item.hours, 8), // 最大8時間に制限
-      label: item.label,
-    }));
+    // データの最大値を動的に計算
+    const maxHours = Math.max(...weeklyData.map(item => item.hours), 1);
+    const dynamicMax = Math.ceil(maxHours * 1.2);
+    
+    // アプリ別の色定義
+    const appColors = [
+      '#5AC8FA', // YouTube
+      '#FF3B30', // YouTube Music
+      '#34C759', // LINE
+      '#007AFF', // Canva
+      '#FF9500', // Safari
+      '#AF52DE', // Messages
+      '#FF2D92', // Instagram
+      '#5856D6', // Twitter
+    ];
+    
+    return weeklyData.map((item, index) => {
+      // 各日のアプリ使用時間をシミュレート（実際のデータがない場合）
+      const apps = [
+        { name: 'YouTube', hours: item.hours * 0.5, color: appColors[0] },
+        { name: 'LINE', hours: item.hours * 0.3, color: appColors[2] },
+        { name: 'Safari', hours: item.hours * 0.2, color: appColors[4] },
+      ];
+      
+      return {
+        x: index,
+        totalHours: item.hours,
+        apps: apps,
+        maxValue: dynamicMax,
+      };
+    });
   }
 
   // 過去1か月の累計時間を計算
@@ -237,6 +286,66 @@ export default function HomeScreen() {
     };
   }
 
+  // 日付をタップしたときの処理
+  function handleDayTap(dayData) {
+    setSelectedDayData(dayData);
+    setIsPopupVisible(true);
+  }
+  
+  // ポップアップを閉じる処理
+  function closePopup() {
+    setIsPopupVisible(false);
+    setSelectedDayData(null);
+  }
+  
+  // カレンダーのデータを準備
+  function prepareCalendarData() {
+    const data = {};
+    usageData.forEach(item => {
+      data[item.date] = item.hours;
+    });
+    setCalendarData(data);
+  }
+  
+  // カレンダーの日付を生成
+  function generateCalendarDays(year, month) {
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    const days = [];
+    const currentDate = new Date(startDate);
+    
+    for (let i = 0; i < 42; i++) {
+      days.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return days;
+  }
+  
+  // 日付をフォーマット
+  function formatDate(date) {
+    return date.toISOString().split('T')[0];
+  }
+
+  // 時給編集の処理
+  function handleWageEdit() {
+    setIsEditingWage(true);
+    setTempHourlyWage(hourlyWage);
+  }
+
+  function handleWageSave() {
+    setHourlyWage(tempHourlyWage);
+    setIsEditingWage(false);
+  }
+
+  function handleWageCancel() {
+    setTempHourlyWage(hourlyWage);
+    setIsEditingWage(false);
+  }
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -246,6 +355,7 @@ export default function HomeScreen() {
   }
 
   return (
+    <>
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
         {error && (
@@ -256,134 +366,180 @@ export default function HomeScreen() {
 
         {/* ホームタブ */}
         {activeTab === 'home' && (
-          <View style={styles.appUsageCard}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>アプリ使用状況</Text>
-          {!isScreenTimeAuthorized && (
-            <TouchableOpacity
-              style={styles.authButton}
-              onPress={requestScreenTimeAuthorization}
-              disabled={loadingScreenTime}
-            >
-              {loadingScreenTime ? (
-                <ActivityIndicator size="small" color="#007AFF" />
-              ) : (
-                <>
-                  <Smartphone size={16} color="#007AFF" />
-                  <Text style={styles.authButtonText}>ScreenTime連携</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-          {isScreenTimeAuthorized && (
-            <TouchableOpacity
-              style={styles.refreshButton}
-              onPress={fetchScreenTimeData}
-              disabled={loadingScreenTime}
-            >
-              {loadingScreenTime ? (
-                <ActivityIndicator size="small" color="#007AFF" />
-              ) : (
-                <RefreshCw size={16} color="#007AFF" />
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {isScreenTimeAuthorized && screenTimeData ? (
-          <>
-            <View style={styles.screenTimeInfo}>
-              <Text style={styles.screenTimeText}>
-                ScreenTime: {minutesToHoursMinutes(screenTimeData.totalScreenTime)}
-              </Text>
-              <Text style={styles.screenTimeSubText}>
-                ピックアップ: {screenTimeData.pickups}回 | 通知: {screenTimeData.notifications}回
+          <View style={styles.homeContainer}>
+            {/* iOS標準スクリーンタイムヘッダー */}
+            <View style={styles.screenTimeHeader}>
+              <Text style={styles.deviceTitle}>本日のスマホ使用時間</Text>
+              <Text style={styles.averageTime}>
+                {(() => {
+                  // ScreenTimeデータがある場合はそれを使用、なければ手動入力データを使用
+                  if (screenTimeData) {
+                    return minutesToHoursMinutes(screenTimeData.totalScreenTime);
+                  } else {
+                    const today = new Date().toISOString().split('T')[0];
+                    const todayData = usageData.find((item) => item.date === today);
+                    if (todayData) {
+                      const hours = Math.floor(todayData.hours);
+                      const minutes = Math.round((todayData.hours - hours) * 60);
+                      return `${hours}時間${minutes}分`;
+                    } else {
+                      return '0時間0分';
+                    }
+                  }
+                })()}
               </Text>
             </View>
-            {screenTimeData.appUsage.slice(0, 5).map((app, index) => (
-              <View key={app.bundleId} style={styles.appUsageItem}>
-                <Text style={styles.appName}>{app.appName}</Text>
-                <Text style={styles.appUsageTime}>{minutesToHoursMinutes(app.usageTime)}</Text>
-              </View>
-            ))}
-            {screenTimeData.appUsage.length > 5 && (
-              <Text style={styles.moreAppsText}>
-                他 {screenTimeData.appUsage.length - 5} 個のアプリ
-              </Text>
-            )}
-          </>
-        ) : (
-          <View style={styles.emptyStateContainer}>
-            <Text style={styles.emptyStateText}>
-              ScreenTime連携ボタンをタップして{'\n'}アプリの使用状況を取得してください
-            </Text>
-          </View>
-        )}
 
-        <View style={styles.historyCard}>
-        <View style={styles.historyHeader}>
-          <TrendingUp size={20} color="#007AFF" />
-          <Text style={styles.cardTitle}>1週間の使用時間推移</Text>
-        </View>
-        {usageData.length === 0 ? (
-          <Text style={styles.emptyText}>まだデータがありません</Text>
-               ) : (
-                 <View style={styles.chartContainer}>
-                   <View style={styles.simpleChart}>
-                     {/* Y軸ラベル */}
-                     <View style={styles.yAxisLabels}>
-                       {[8, 6, 4, 2, 0].map(i => (
-                         <Text key={`y-label-${i}`} style={styles.yAxisLabel}>
-                           {i}h
-                         </Text>
-                       ))}
-                     </View>
-                     
-                     {/* グラフエリア */}
-                     <View style={styles.graphArea}>
-                       {/* グリッド線 */}
-                       <View style={styles.gridLines}>
-                         {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                           <View key={`grid-y-${i}`} style={[styles.gridLine, { top: i * 20 }]} />
-                         ))}
-                         {[0, 1, 2, 3, 4, 5, 6].map(i => (
-                           <View key={`grid-x-${i}`} style={[styles.gridLineVertical, { left: i * 43.3 }]} />
-                         ))}
-                       </View>
-                       
-                       {/* データバー */}
-                       <View style={styles.dataBars}>
-                         {getChartData().map((point, index) => {
-                           // 正しいY軸に基づいて高さを計算（0h=0px, 8h=160px）
-                           const height = (point.y / 8) * 160;
-                           const weeklyData = prepareWeeklyData();
-                           const dateLabel = weeklyData[index]?.label || '';
-                           return (
-                             <View key={`bar-${index}`} style={styles.barContainer}>
-                               <Text style={styles.dateLabel}>{dateLabel}</Text>
-                               <Text style={styles.barValue}>{point.y.toFixed(1)}h</Text>
-                               <View style={[styles.dataBar, { height: Math.max(height, 2) }]} />
-                             </View>
-                           );
-                         })}
-                       </View>
-                     </View>
-                     
-                   </View>
-                   <View style={styles.chartLegend}>
-                     <Text style={styles.chartLegendText}>過去7日間の使用時間推移</Text>
-                   </View>
-                 </View>
-               )}
-        </View>
+            {/* ScreenTimeデータ表示 */}
+            <View style={styles.screenTimeData}>
+              {screenTimeData ? (
+                <View style={styles.appUsageList}>
+                  <Text style={styles.appUsageTitle}>アプリ別使用時間</Text>
+                  {screenTimeData.appUsage.slice(0, 5).map((app, index) => (
+                    <View key={app.bundleId} style={styles.appUsageItem}>
+                      <Text style={styles.appName}>{app.appName}</Text>
+                      <Text style={styles.appUsageTime}>{minutesToHoursMinutes(app.usageTime)}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.noScreenTimeData}>
+                  <Text style={styles.noScreenTimeText}>
+                    ScreenTimeデータが利用できません
+                  </Text>
+                  <Text style={styles.noScreenTimeSubText}>
+                    手動で使用時間を入力してください
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* iOS標準スクリーンタイムグラフ */}
+            <View style={styles.weeklyChart}>
+              <View style={styles.chartHeader}>
+                <Text style={styles.chartTitle}>1週間の使用時間</Text>
+              </View>
+              
+              {usageData.length === 0 ? (
+                <View style={styles.emptyChart}>
+                  <Text style={styles.emptyChartText}>まだデータがありません</Text>
+                </View>
+              ) : (
+                <View style={styles.chartContainer}>
+                  <View style={styles.chartArea}>
+                    {/* Y軸ラベル（左側） */}
+                    <View style={styles.yAxisLabels}>
+                      {(() => {
+                        const chartData = getChartData();
+                        const maxValue = chartData[0]?.maxValue || 8;
+                        return [maxValue, 0].map(i => (
+                          <Text key={`y-label-${i}`} style={styles.yAxisLabel}>
+                            {i.toFixed(0)}時間
+                          </Text>
+                        ));
+                      })()}
+                    </View>
+                    
+                    {/* グリッド線 */}
+                    <View style={styles.gridLines}>
+                      {[0, 1, 2, 3, 4, 5, 6].map(i => (
+                        <View key={`grid-y-${i}`} style={[styles.gridLine, { top: i * 32 }]} />
+                      ))}
+                    </View>
+                    
+                    {/* 平均線 */}
+                    <View style={styles.averageLine}>
+                      <View style={styles.averageLineDot} />
+                      <Text style={styles.averageLineLabel}>平均</Text>
+                    </View>
+                    
+                    {/* データバー（積み上げ式） */}
+                    <View style={styles.dataBars}>
+                      {getChartData().map((dayData, index) => {
+                        const dayLabels = ['日', '月', '火', '水', '木', '金', '土'];
+                        const totalHeight = (dayData.totalHours / dayData.maxValue) * 160;
+                        
+                        return (
+                          <TouchableOpacity 
+                            key={`bar-${index}`} 
+                            style={styles.barContainer}
+                            onPress={() => handleDayTap(dayData)}
+                          >
+                            <View style={styles.stackedBar}>
+                              {dayData.apps.map((app, appIndex) => {
+                                const appHeight = (app.hours / dayData.maxValue) * 160;
+                                return (
+                                  <View
+                                    key={`${index}-${appIndex}`}
+                                    style={[
+                                      styles.appSegment,
+                                      {
+                                        height: Math.max(appHeight, 1),
+                                        backgroundColor: app.color,
+                                      }
+                                    ]}
+                                  />
+                                );
+                              })}
+                            </View>
+                            <Text style={styles.dayLabel}>{dayLabels[index]}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                </View>
+              )}
+              
+              {/* アプリ別使用時間の凡例 */}
+              {usageData.length > 0 && (
+                <View style={styles.appLegend}>
+                  <Text style={styles.legendTitle}>アプリ別使用時間</Text>
+                  {(() => {
+                    const chartData = getChartData();
+                    const totalHours = chartData.reduce((sum, day) => sum + day.totalHours, 0);
+                    const appTotals = {};
+                    
+                    chartData.forEach(day => {
+                      day.apps.forEach(app => {
+                        if (!appTotals[app.name]) {
+                          appTotals[app.name] = { hours: 0, color: app.color };
+                        }
+                        appTotals[app.name].hours += app.hours;
+                      });
+                    });
+                    
+                    return Object.entries(appTotals)
+                      .sort(([,a], [,b]) => b.hours - a.hours)
+                      .map(([appName, data]) => (
+                        <View key={appName} style={styles.legendItem}>
+                          <View style={[styles.legendColor, { backgroundColor: data.color }]} />
+                          <Text style={styles.legendAppName}>{appName}</Text>
+                          <Text style={styles.legendHours}>
+                            {Math.round(data.hours * 10) / 10}時間
+                          </Text>
+                        </View>
+                      ));
+                  })()}
+                </View>
+              )}
+            </View>
           </View>
         )}
 
         {/* 過去タブ */}
         {activeTab === 'history' && (
           <View style={styles.historyPage}>
-            <View style={styles.monthlyStatsCard}>
-              <Text style={styles.cardTitle}>過去1か月の統計</Text>
+            <View style={styles.monthlyStatsSection}>
+              <View style={styles.statsHeader}>
+                <Text style={styles.cardTitle}>過去1か月の統計</Text>
+                <TouchableOpacity 
+                  style={styles.editButton}
+                  onPress={handleWageEdit}
+                >
+                  <Text style={styles.editButtonText}>編集</Text>
+                </TouchableOpacity>
+              </View>
               {(() => {
                 const monthlyStats = calculateMonthlyUsage();
                 const salaryStats = calculateSalaryFromUsage(monthlyStats.totalHours);
@@ -406,20 +562,123 @@ export default function HomeScreen() {
                       <Text style={styles.statValue}>{salaryStats.salary.toLocaleString()}円</Text>
                       <Text style={styles.statSubText}>（時給{salaryStats.hourlyWage}円）</Text>
                     </View>
+                    
+                    {isEditingWage && (
+                      <View style={styles.wageEditSection}>
+                        <Text style={styles.wageEditLabel}>時給設定</Text>
+                        <View style={styles.wageEditRow}>
+                          <TextInput
+                            style={styles.wageEditInput}
+                            value={tempHourlyWage.toString()}
+                            onChangeText={(text) => setTempHourlyWage(parseInt(text) || 0)}
+                            keyboardType="numeric"
+                            placeholder="時給を入力"
+                          />
+                          <Text style={styles.wageEditUnit}>円/時間</Text>
+                        </View>
+                        <View style={styles.wageEditButtons}>
+                          <TouchableOpacity 
+                            style={styles.wageEditButton}
+                            onPress={handleWageSave}
+                          >
+                            <Text style={styles.wageEditButtonText}>保存</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={[styles.wageEditButton, styles.wageEditButtonCancel]}
+                            onPress={handleWageCancel}
+                          >
+                            <Text style={[styles.wageEditButtonText, styles.wageEditButtonTextCancel]}>キャンセル</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
                   </>
                 );
               })()}
             </View>
 
-            <View style={styles.detailedHistoryCard}>
-              <Text style={styles.cardTitle}>詳細履歴</Text>
-              {usageData.slice(0, 30).map((item, index) => (
-                <View key={index} style={styles.historyItem}>
-                  <Text style={styles.historyDate}>{item.date}</Text>
-                  <Text style={styles.historyHours}>{item.hours}時間</Text>
+            {/* カレンダーセクション */}
+            <View style={styles.calendarSection}>
+              <Text style={styles.cardTitle}>使用時間カレンダー</Text>
+              <View style={styles.calendarContainer}>
+                {/* カレンダーヘッダー */}
+                <View style={styles.calendarHeader}>
+                  <TouchableOpacity 
+                    onPress={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1))}
+                    style={styles.calendarNavButton}
+                  >
+                    <Text style={styles.calendarNavText}>‹</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.calendarTitle}>
+                    {selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月
+                  </Text>
+                  <TouchableOpacity 
+                    onPress={() => setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1))}
+                    style={styles.calendarNavButton}
+                  >
+                    <Text style={styles.calendarNavText}>›</Text>
+                  </TouchableOpacity>
                 </View>
-              ))}
+                
+                {/* 曜日ヘッダー */}
+                <View style={styles.weekdayHeader}>
+                  {['日', '月', '火', '水', '木', '金', '土'].map(day => (
+                    <Text key={day} style={styles.weekdayText}>{day}</Text>
+                  ))}
+                </View>
+                
+                {/* カレンダーグリッド */}
+                <View style={styles.calendarGrid}>
+                  {generateCalendarDays(selectedDate.getFullYear(), selectedDate.getMonth()).map((day, index) => {
+                    const dateStr = formatDate(day);
+                    const hours = calendarData[dateStr] || 0;
+                    const isCurrentMonth = day.getMonth() === selectedDate.getMonth();
+                    const isToday = formatDate(day) === formatDate(new Date());
+                    
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.calendarDay,
+                          !isCurrentMonth && styles.calendarDayOtherMonth,
+                          isToday && styles.calendarDayToday
+                        ]}
+                        onPress={() => {
+                          if (hours > 0) {
+                            setSelectedDayData({
+                              totalHours: hours,
+                              apps: [
+                                { name: 'YouTube', hours: hours * 0.5, color: '#5AC8FA' },
+                                { name: 'LINE', hours: hours * 0.3, color: '#34C759' },
+                                { name: 'Safari', hours: hours * 0.2, color: '#FF9500' },
+                              ]
+                            });
+                            setIsPopupVisible(true);
+                          }
+                        }}
+                      >
+                        <Text style={[
+                          styles.calendarDayText,
+                          !isCurrentMonth && styles.calendarDayTextOtherMonth,
+                          isToday && styles.calendarDayTextToday
+                        ]}>
+                          {day.getDate()}
+                        </Text>
+                        {hours > 0 && (
+                          <Text style={[
+                            styles.calendarUsageText,
+                            { color: hours > 4 ? '#FF3B30' : hours > 2 ? '#FF9500' : '#34C759' }
+                          ]}>
+                            {hours.toFixed(1)}h
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
             </View>
+
           </View>
         )}
 
@@ -439,17 +698,6 @@ export default function HomeScreen() {
                 />
               </View>
 
-              <View style={styles.settingItem}>
-                <Text style={styles.settingLabel}>時給設定</Text>
-                <TextInput
-                  style={styles.settingInput}
-                  value={hourlyWage.toString()}
-                  onChangeText={(text) => setHourlyWage(parseInt(text) || 0)}
-                  placeholder="時給を入力"
-                  keyboardType="numeric"
-                />
-                <Text style={styles.settingUnit}>円/時間</Text>
-              </View>
 
               <View style={styles.settingItem}>
                 <Text style={styles.settingLabel}>通知設定</Text>
@@ -510,6 +758,48 @@ export default function HomeScreen() {
       </TouchableOpacity>
     </View>
     </View>
+
+    {/* 日付詳細ポップアップ */}
+    <Modal
+      visible={isPopupVisible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={closePopup}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>使用時間詳細</Text>
+            <TouchableOpacity onPress={closePopup} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>×</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {selectedDayData && (
+            <View style={styles.modalBody}>
+              <View style={styles.totalUsageSection}>
+                <Text style={styles.totalUsageLabel}>合計使用時間</Text>
+                <Text style={styles.totalUsageValue}>
+                  {selectedDayData.totalHours.toFixed(1)}時間
+                </Text>
+              </View>
+              
+              <View style={styles.appUsageSection}>
+                <Text style={styles.appUsageTitle}>アプリ別使用時間</Text>
+                {selectedDayData.apps.map((app, index) => (
+                  <View key={index} style={styles.appUsageItem}>
+                    <View style={[styles.appColorIndicator, { backgroundColor: app.color }]} />
+                    <Text style={styles.appName}>{app.name}</Text>
+                    <Text style={styles.appHours}>{app.hours.toFixed(1)}時間</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+      </View>
+    </Modal>
+    </>
   );
 }
 
@@ -612,17 +902,10 @@ const styles = StyleSheet.create({
     color: '#c33',
     fontSize: 14,
   },
-  historyCard: {
-    backgroundColor: '#fff',
+  chartSection: {
     marginHorizontal: 16,
     marginBottom: 32,
     padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   historyHeader: {
     flexDirection: 'row',
@@ -697,18 +980,125 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
-  appUsageCard: {
-    backgroundColor: '#fff',
+  homeContainer: {
     marginHorizontal: 16,
     marginTop: 60,
     marginBottom: 16,
     padding: 20,
+  },
+  screenTimeHeader: {
+    marginBottom: 24,
+  },
+  deviceTitle: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginBottom: 4,
+  },
+  averageLabel: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginBottom: 8,
+  },
+  averageTime: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#000',
+  },
+  authSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  screenTimeData: {
+    marginBottom: 24,
+  },
+  todayUsage: {
+    marginBottom: 16,
+  },
+  todayLabel: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginBottom: 4,
+  },
+  todayTime: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#000',
+  },
+  pickupInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  pickupText: {
+    fontSize: 14,
+    color: '#8E8E93',
+  },
+  notificationText: {
+    fontSize: 14,
+    color: '#8E8E93',
+  },
+  appUsageList: {
+    backgroundColor: '#F2F2F7',
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 16,
+  },
+  appUsageTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 12,
+  },
+  weeklyChart: {
+    marginBottom: 24,
+  },
+  chartHeader: {
+    marginBottom: 16,
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  emptyChart: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 12,
+  },
+  emptyChartText: {
+    fontSize: 14,
+    color: '#8E8E93',
+  },
+  chartArea: {
+    height: 200,
+    backgroundColor: '#F2F2F7',
+    borderRadius: 12,
+    padding: 16,
+    position: 'relative',
+    width: '100%',
+  },
+  averageLine: {
+    position: 'absolute',
+    top: 80,
+    left: 60,
+    right: 0,
+    height: 1,
+    backgroundColor: '#34C759',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  averageLineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#34C759',
+    marginRight: 8,
+  },
+  averageLineLabel: {
+    fontSize: 12,
+    color: '#34C759',
+    fontWeight: '500',
   },
   appUsageItem: {
     flexDirection: 'row',
@@ -751,27 +1141,29 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     top: 0,
-    height: 160, // グラフエリアと同じ高さに調整
-    width: 30,
+    height: 160,
+    width: 50,
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
   yAxisLabel: {
-    fontSize: 10,
-    color: '#666',
-    textAlign: 'right',
+    fontSize: 12,
+    color: '#8E8E93',
+    textAlign: 'left',
   },
   graphArea: {
     position: 'absolute',
     left: 35,
     top: 0,
     width: 260,
-    height: 160, // X軸ラベルのスペースを考慮して調整
+    height: 160,
   },
   gridLines: {
     position: 'absolute',
-    width: '100%',
-    height: '100%',
+    left: 60,
+    right: 0,
+    top: 0,
+    bottom: 40,
   },
   gridLine: {
     position: 'absolute',
@@ -789,10 +1181,10 @@ const styles = StyleSheet.create({
   },
   dataBars: {
     position: 'absolute',
-    left: 10,
-    right: 10,
+    left: 60,
+    right: 0,
     top: 0,
-    bottom: 0, // X軸ラベルが不要になったので全高を使用
+    bottom: 40,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'flex-end',
@@ -803,12 +1195,14 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     height: '100%',
   },
-  dataBar: {
-    width: 20,
-    backgroundColor: '#007AFF',
-    borderRadius: 10,
-    marginTop: 5,
-    minHeight: 2,
+  stackedBar: {
+    width: 24,
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  appSegment: {
+    width: 24,
+    minHeight: 1,
   },
   barValue: {
     fontSize: 9,
@@ -817,11 +1211,44 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 2,
   },
-  dateLabel: {
-    fontSize: 8,
-    color: '#666',
+  dayLabel: {
+    fontSize: 12,
+    color: '#8E8E93',
     textAlign: 'center',
-    marginBottom: 2,
+    marginTop: 8,
+    fontWeight: '500',
+  },
+  appLegend: {
+    marginTop: 16,
+    backgroundColor: '#F2F2F7',
+    borderRadius: 12,
+    padding: 16,
+  },
+  legendTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 12,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  legendColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  legendAppName: {
+    fontSize: 14,
+    color: '#000',
+    flex: 1,
+  },
+  legendHours: {
+    fontSize: 14,
+    color: '#8E8E93',
     fontWeight: '500',
   },
   xAxisLabels: {
@@ -902,16 +1329,10 @@ const styles = StyleSheet.create({
   historyPage: {
     padding: 16,
   },
-  monthlyStatsCard: {
-    backgroundColor: '#fff',
+  monthlyStatsSection: {
+    marginTop: 60,
     marginBottom: 16,
     padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   statItem: {
     flexDirection: 'row',
@@ -935,19 +1356,85 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 2,
   },
-  detailedHistoryCard: {
+  statsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  editButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  editButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  wageEditSection: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  wageEditLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  wageEditRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  wageEditInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    padding: 8,
+    fontSize: 16,
     backgroundColor: '#fff',
+    marginRight: 8,
+  },
+  wageEditUnit: {
+    fontSize: 14,
+    color: '#666',
+  },
+  wageEditButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  wageEditButton: {
+    flex: 1,
+    backgroundColor: '#007AFF',
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  wageEditButtonCancel: {
+    backgroundColor: '#f0f0f0',
+  },
+  wageEditButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  wageEditButtonTextCancel: {
+    color: '#666',
+  },
+  detailedHistorySection: {
     padding: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   // マイページのスタイル
   profilePage: {
     padding: 16,
+    paddingTop: 80,
   },
   profileCard: {
     backgroundColor: '#fff',
@@ -1029,5 +1516,210 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // ポップアップのスタイル
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    width: '85%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: '#666',
+    fontWeight: '600',
+  },
+  modalBody: {
+    gap: 20,
+  },
+  totalUsageSection: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+  },
+  totalUsageLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  totalUsageValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#007AFF',
+  },
+  appUsageSection: {
+    gap: 12,
+  },
+  appUsageTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 8,
+  },
+  appUsageItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+  },
+  appColorIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  appName: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000',
+  },
+  appHours: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  // カレンダーのスタイル
+  calendarSection: {
+    marginTop: 60,
+    marginBottom: 20,
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  calendarContainer: {
+    marginTop: 12,
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  calendarNavButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  calendarNavText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  calendarTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+  },
+  weekdayHeader: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  weekdayText: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+    paddingVertical: 8,
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarDay: {
+    width: '14.28%',
+    height: 50,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  calendarDayOtherMonth: {
+    backgroundColor: '#f8f8f8',
+  },
+  calendarDayToday: {
+    backgroundColor: '#e3f2fd',
+    borderColor: '#007AFF',
+  },
+  calendarDayText: {
+    fontSize: 14,
+    color: '#000',
+    fontWeight: '500',
+  },
+  calendarDayTextOtherMonth: {
+    color: '#ccc',
+  },
+  calendarDayTextToday: {
+    color: '#007AFF',
+    fontWeight: '600',
+  },
+  calendarUsageText: {
+    fontSize: 9,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 11,
+  },
+  // ScreenTimeデータがない場合のスタイル
+  noScreenTimeData: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+  },
+  noScreenTimeText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+  },
+  noScreenTimeSubText: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
   },
 });
