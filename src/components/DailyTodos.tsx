@@ -39,7 +39,7 @@ export default function DailyTodos({
     <div className="bg-white rounded-2xl shadow-lg p-8">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="bg-green-600 p-2 rounded-lg">
+          <div className="bg-slate-700 p-2 rounded-lg">
             <Calendar className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -97,7 +97,7 @@ export default function DailyTodos({
           todos.map((todo) => (
             <div
               key={todo.id}
-              className="flex items-start gap-3 p-4 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all group"
+              className="flex items-start gap-3 p-4 rounded-lg border border-gray-200 hover:border-slate-300 hover:bg-blue-50 transition-all group"
             >
               <button
                 onClick={() => handleToggle(todo.id, !todo.completed)}
@@ -105,11 +105,11 @@ export default function DailyTodos({
                 className="flex-shrink-0 mt-0.5 transition-transform hover:scale-110 disabled:opacity-50"
               >
                 {togglingIds.has(todo.id) ? (
-                  <Loader2 className="w-6 h-6 text-green-600 animate-spin" />
+                  <Loader2 className="w-6 h-6 text-slate-600 animate-spin" />
                 ) : todo.completed ? (
-                  <CheckCircle2 className="w-6 h-6 text-green-600" />
+                  <CheckCircle2 className="w-6 h-6 text-slate-600" />
                 ) : (
-                  <Circle className="w-6 h-6 text-gray-400 group-hover:text-green-600" />
+                  <Circle className="w-6 h-6 text-gray-400 group-hover:text-slate-600" />
                 )}
               </button>
               <p

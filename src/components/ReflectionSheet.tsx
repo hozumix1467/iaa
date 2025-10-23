@@ -125,6 +125,27 @@ export default function ReflectionSheet({ selectedDate, onTodoToggle }: Reflecti
           }));
           setTodos(restoredTodos);
           setShowTodos(true);
+        } else {
+          // ローカルストレージからTODOリストを読み込み（カレンダーとの同期のため）
+          const savedTodos = localStorage.getItem('calendarTodos');
+          if (savedTodos) {
+            try {
+              const parsedTodos = JSON.parse(savedTodos);
+              const dateTodos = parsedTodos.filter((todo: any) => todo.date === selectedDate);
+              if (dateTodos.length > 0) {
+                const localTodos: TodoItem[] = dateTodos.map((todo: any, index: number) => ({
+                  id: `local-${selectedDate}-${index}`,
+                  text: todo.text,
+                  completed: todo.completed || false,
+                  createdAt: todo.createdAt || new Date().toISOString(),
+                }));
+                setTodos(localTodos);
+                setShowTodos(true);
+              }
+            } catch (error) {
+              console.error('ローカルストレージからのTODO読み込みエラー:', error);
+            }
+          }
         }
       } else {
         // 新しい日付の場合、初期値を設定
@@ -132,6 +153,27 @@ export default function ReflectionSheet({ selectedDate, onTodoToggle }: Reflecti
           date: selectedDate,
           memo: '',
         });
+        
+        // ローカルストレージからTODOリストを読み込み（カレンダーとの同期のため）
+        const savedTodos = localStorage.getItem('calendarTodos');
+        if (savedTodos) {
+          try {
+            const parsedTodos = JSON.parse(savedTodos);
+            const dateTodos = parsedTodos.filter((todo: any) => todo.date === selectedDate);
+            if (dateTodos.length > 0) {
+              const localTodos: TodoItem[] = dateTodos.map((todo: any, index: number) => ({
+                id: `local-${selectedDate}-${index}`,
+                text: todo.text,
+                completed: todo.completed || false,
+                createdAt: todo.createdAt || new Date().toISOString(),
+              }));
+              setTodos(localTodos);
+              setShowTodos(true);
+            }
+          } catch (error) {
+            console.error('ローカルストレージからのTODO読み込みエラー:', error);
+          }
+        }
       }
     } catch (error) {
       console.error('振り返りデータの読み込みエラー:', error);
@@ -519,8 +561,8 @@ export default function ReflectionSheet({ selectedDate, onTodoToggle }: Reflecti
                           onClick={() => toggleTodo(todo.id)}
                           className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                             todo.completed
-                              ? 'bg-green-500 border-green-500 text-white'
-                              : 'border-gray-300 hover:border-green-500'
+                              ? 'bg-slate-600 border-slate-600 text-white'
+                              : 'border-gray-300 hover:border-slate-500'
                           }`}
                         >
                           {todo.completed && <CheckSquare className="w-3 h-3" />}
@@ -576,7 +618,7 @@ export default function ReflectionSheet({ selectedDate, onTodoToggle }: Reflecti
             <button
               onClick={handleSubmitToAI}
               disabled={submittingToAI || !reflection.memo.trim()}
-              className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="bg-slate-700 text-white px-6 py-3 rounded-lg font-medium hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {submittingToAI ? (
                 <>

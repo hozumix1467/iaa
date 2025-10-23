@@ -33,14 +33,14 @@ export default function GoalCard({ goal, isActive, onClick }: GoalCardProps) {
       onClick={onClick}
       className={`cursor-pointer p-6 rounded-xl border-2 transition-all ${
         isActive
-          ? 'border-green-600 bg-green-50 shadow-lg scale-105'
-          : 'border-gray-200 bg-white hover:border-green-300 hover:shadow-md'
+          ? 'border-slate-600 bg-blue-50 shadow-lg scale-105'
+          : 'border-gray-200 bg-white hover:border-slate-300 hover:shadow-md'
       }`}
     >
       <div className="flex items-start gap-3 mb-4">
         <div
           className={`p-2 rounded-lg ${
-            isActive ? 'bg-green-600' : 'bg-gray-200'
+            isActive ? 'bg-slate-700' : 'bg-gray-200'
           }`}
         >
           <Target className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-600'}`} />

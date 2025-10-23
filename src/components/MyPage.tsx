@@ -56,7 +56,7 @@ export default function MyPage({ onSignOut }: MyPageProps) {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex items-center gap-3 mb-8">
-        <div className="bg-green-600 p-3 rounded-lg">
+        <div className="bg-slate-700 p-3 rounded-lg">
           <User className="w-8 h-8 text-white" />
         </div>
         <div>
@@ -95,7 +95,7 @@ export default function MyPage({ onSignOut }: MyPageProps) {
                 />
                 <button
                   onClick={handleSaveUserId}
-                  className="p-2 text-green-600 hover:text-green-700 transition-colors"
+                  className="p-2 text-slate-600 hover:text-slate-700 transition-colors"
                   title="保存"
                 >
                   <Save className="w-4 h-4" />

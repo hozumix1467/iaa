@@ -195,7 +195,7 @@ export default function FirebaseGoalsPage({ goals, onGoalsChange }: FirebaseGoal
                 type="button"
                 onClick={handleCreateGoal}
                 disabled={!newGoal.title.trim()}
-                className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-slate-700 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="w-5 h-5 inline-block mr-2" />
                 作成
@@ -216,7 +216,7 @@ export default function FirebaseGoalsPage({ goals, onGoalsChange }: FirebaseGoal
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={() => setIsAIChatOpen(true)}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-colors flex items-center gap-2"
+                className="bg-gradient-to-r from-slate-700 to-blue-800 text-white px-6 py-3 rounded-lg font-medium hover:from-slate-800 hover:to-blue-900 transition-colors flex items-center gap-2"
               >
                 <MessageCircle className="w-5 h-5" />
                 AIと目標を決める
@@ -224,7 +224,7 @@ export default function FirebaseGoalsPage({ goals, onGoalsChange }: FirebaseGoal
 
               <button
                 onClick={() => setIsCreating(true)}
-                className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
+                className="bg-slate-700 text-white px-6 py-3 rounded-lg font-medium hover:bg-slate-800 transition-colors flex items-center gap-2"
               >
                 <Plus className="w-5 h-5" />
                 手動で作成
@@ -240,7 +240,7 @@ export default function FirebaseGoalsPage({ goals, onGoalsChange }: FirebaseGoal
               <div className="flex gap-3">
                 <button
                   onClick={() => setIsAIChatOpen(true)}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-colors flex items-center gap-2"
+                  className="bg-gradient-to-r from-slate-700 to-blue-800 text-white px-6 py-3 rounded-lg font-medium hover:from-slate-800 hover:to-blue-900 transition-colors flex items-center gap-2"
                 >
                   <MessageCircle className="w-5 h-5" />
                   AIと目標を決める
@@ -248,7 +248,7 @@ export default function FirebaseGoalsPage({ goals, onGoalsChange }: FirebaseGoal
 
                 <button
                   onClick={() => setIsCreating(true)}
-                  className="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
+                  className="bg-slate-700 text-white px-6 py-3 rounded-lg font-medium hover:bg-slate-800 transition-colors flex items-center gap-2"
                 >
                   <Plus className="w-5 h-5" />
                   新しい目標を作成
@@ -311,7 +311,7 @@ export default function FirebaseGoalsPage({ goals, onGoalsChange }: FirebaseGoal
                       </button>
                       <button
                         onClick={() => handleUpdateGoal(goal.id!, editGoal.title, editGoal.duration)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                        className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors"
                       >
                         <Save className="w-4 h-4 inline-block mr-1" />
                         保存

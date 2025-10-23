@@ -12,6 +12,7 @@ import Calendar, { SelectedDateTodos } from './components/Calendar';
 import FirebaseGoalsPage from './components/FirebaseGoalsPage';
 import ReflectionSheet from './components/ReflectionSheet';
 import MyPage from './components/MyPage';
+import LandingPage from './components/LandingPage';
 import { LogOut, Settings } from 'lucide-react';
 
 function App() {
@@ -24,7 +25,7 @@ function App() {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [openaiApiKey, setOpenaiApiKey] = useState('');
   const [selectedCalendarDate, setSelectedCalendarDate] = useState('');
-  const [currentPage, setCurrentPage] = useState<'home' | 'goals' | 'mypage'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'goals' | 'mypage' | 'lp'>('lp');
   const [calendarTodos, setCalendarTodos] = useState<any[]>([]);
 
   const todayDate = new Date().toISOString().split('T')[0];
@@ -315,24 +316,30 @@ function App() {
     console.log('=== APP: handleReflectionTodoToggle END ===');
   };
 
-  const handlePageChange = (page: 'home' | 'goals' | 'mypage') => {
+  const handlePageChange = (page: 'home' | 'goals' | 'mypage' | 'lp') => {
     setCurrentPage(page);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
         <div className="text-gray-600">読み込み中...</div>
       </div>
     );
   }
 
-  if (!user) {
-    return <FirebaseAuth onAuth={() => {}} />;
+  // LPページの場合は認証不要
+  if (currentPage === 'lp') {
+    return <LandingPage onPageChange={handlePageChange} />;
   }
 
+  // 一時的に認証チェックをスキップ（デモ用）
+  // if (!user) {
+  //   return <FirebaseAuth onAuth={() => {}} />;
+  // }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       <Header 
         currentPage={currentPage}
         onPageChange={handlePageChange}

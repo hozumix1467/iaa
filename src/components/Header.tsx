@@ -1,8 +1,8 @@
-import { Home, User, Calendar } from 'lucide-react';
+import { Home, User, Calendar, Info } from 'lucide-react';
 
 interface HeaderProps {
-  currentPage: 'home' | 'goals' | 'mypage';
-  onPageChange: (page: 'home' | 'goals' | 'mypage') => void;
+  currentPage: 'home' | 'goals' | 'mypage' | 'lp';
+  onPageChange: (page: 'home' | 'goals' | 'mypage' | 'lp') => void;
 }
 
 export default function Header({ currentPage, onPageChange }: HeaderProps) {
@@ -34,10 +34,10 @@ export default function Header({ currentPage, onPageChange }: HeaderProps) {
                 />
                 {/* フォールバック表示 */}
                 <div 
-                  className="w-24 h-24 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg flex items-center justify-center text-white font-bold text-2xl hidden"
+                  className="w-24 h-24 bg-gradient-to-r from-slate-700 to-blue-800 rounded-lg flex items-center justify-center text-white font-bold text-2xl hidden"
                   style={{display: 'none'}}
                 >
-                  IAA
+                  Odop
                 </div>
               </button>
 
@@ -49,7 +49,7 @@ export default function Header({ currentPage, onPageChange }: HeaderProps) {
               onClick={() => onPageChange('home')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all duration-200 ${
                 currentPage === 'home'
-                  ? 'bg-green-600 text-white font-medium shadow-sm border border-green-600'
+                  ? 'bg-slate-700 text-white font-medium shadow-sm border border-slate-700'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 hover:shadow-sm'
               }`}
               title="ホーム"
@@ -62,7 +62,7 @@ export default function Header({ currentPage, onPageChange }: HeaderProps) {
               onClick={() => onPageChange('goals')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all duration-200 ${
                 currentPage === 'goals'
-                  ? 'bg-green-600 text-white font-medium shadow-sm border border-green-600'
+                  ? 'bg-slate-700 text-white font-medium shadow-sm border border-slate-700'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 hover:shadow-sm'
               }`}
               title="目標管理"
@@ -72,10 +72,23 @@ export default function Header({ currentPage, onPageChange }: HeaderProps) {
             </button>
             
             <button
+              onClick={() => onPageChange('lp')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all duration-200 ${
+                currentPage === 'lp'
+                  ? 'bg-slate-700 text-white font-medium shadow-sm border border-slate-700'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 hover:shadow-sm'
+              }`}
+              title="サービス紹介"
+            >
+              <Info className="w-4 h-4" />
+              <span className="hidden sm:inline font-medium">サービス</span>
+            </button>
+            
+            <button
               onClick={() => onPageChange('mypage')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all duration-200 ${
                 currentPage === 'mypage'
-                  ? 'bg-green-600 text-white font-medium shadow-sm border border-green-600'
+                  ? 'bg-slate-700 text-white font-medium shadow-sm border border-slate-700'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 hover:shadow-sm'
               }`}
               title="マイページ"

@@ -193,9 +193,9 @@ export default function Calendar({ onDateSelect, selectedDate }: CalendarProps) 
               ${!day.isCurrentMonth 
                 ? 'text-gray-300 hover:bg-gray-50' 
                 : day.isToday
-                ? 'bg-green-600 text-white font-semibold hover:bg-green-700'
+                ? 'bg-slate-700 text-white font-semibold hover:bg-slate-800'
                 : day.isSelected
-                ? 'bg-green-100 text-green-900 font-semibold hover:bg-green-200'
+                ? 'bg-blue-100 text-blue-900 font-semibold hover:bg-blue-200'
                 : 'text-gray-700 hover:bg-gray-100'
               }
             `}
@@ -215,7 +215,7 @@ export default function Calendar({ onDateSelect, selectedDate }: CalendarProps) 
                       className="flex-shrink-0 cursor-pointer hover:opacity-70 transition-opacity"
                     >
                       {todo.completed ? (
-                        <CheckCircle className={`w-3 h-3 ${day.isToday ? 'text-green-200' : 'text-green-600'}`} />
+                        <CheckCircle className={`w-3 h-3 ${day.isToday ? 'text-blue-200' : 'text-slate-600'}`} />
                       ) : (
                         <Circle className={`w-3 h-3 ${day.isToday ? 'text-white' : 'text-gray-400'}`} />
                       )}
@@ -241,11 +241,11 @@ export default function Calendar({ onDateSelect, selectedDate }: CalendarProps) 
       <div className="mt-4 pt-4 border-t border-gray-200">
         <div className="flex items-center gap-4 text-sm text-gray-600">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-600 rounded-full"></div>
+            <div className="w-3 h-3 bg-slate-600 rounded-full"></div>
             <span>今日</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-100 rounded-full"></div>
+            <div className="w-3 h-3 bg-blue-100 rounded-full"></div>
             <span>選択日</span>
           </div>
         </div>
@@ -327,8 +327,8 @@ export function SelectedDateTodos({ selectedDate, todos, onToggleTodo }: Selecte
                 onClick={() => onToggleTodo(todo.id)}
                 className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                   todo.completed
-                    ? 'bg-green-500 border-green-500 text-white'
-                    : 'border-gray-300 hover:border-green-500'
+                    ? 'bg-slate-600 border-slate-600 text-white'
+                    : 'border-gray-300 hover:border-slate-500'
                 }`}
               >
                 {todo.completed && <CheckCircle className="w-3 h-3" />}

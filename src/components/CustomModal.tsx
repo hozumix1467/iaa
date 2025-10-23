@@ -52,7 +52,7 @@ export default function CustomModal({
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-8 h-8 text-green-600" />;
+        return <CheckCircle className="w-8 h-8 text-slate-600" />;
       case 'error':
         return <AlertCircle className="w-8 h-8 text-red-600" />;
       case 'warning':
@@ -65,7 +65,7 @@ export default function CustomModal({
   const getTitleColor = () => {
     switch (type) {
       case 'success':
-        return 'text-green-900';
+        return 'text-slate-900';
       case 'error':
         return 'text-red-900';
       case 'warning':
@@ -78,7 +78,7 @@ export default function CustomModal({
   const getMessageColor = () => {
     switch (type) {
       case 'success':
-        return 'text-green-700';
+        return 'text-slate-700';
       case 'error':
         return 'text-red-700';
       case 'warning':
@@ -91,7 +91,7 @@ export default function CustomModal({
   const getButtonStyle = () => {
     switch (type) {
       case 'success':
-        return 'bg-green-600 hover:bg-green-700 text-white';
+        return 'bg-slate-700 hover:bg-slate-800 text-white';
       case 'error':
         return 'bg-red-600 hover:bg-red-700 text-white';
       case 'warning':
